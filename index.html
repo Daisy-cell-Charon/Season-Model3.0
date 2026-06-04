@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Shenzhen Observatory · Seasons Model | Accurate Month & Date</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            background: radial-gradient(circle at 30% 20%, #020617, #000000);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', 'Georgia', 'Times New Roman', serif;
+            padding: 24px 16px;
+        }
+
+        .planetarium-card {
+            max-width: 1400px;
+            width: 100%;
+            background: rgba(8, 18, 38, 0.85);
+            backdrop-filter: blur(4px);
+            border-radius: 48px;
+            padding: 24px 28px 36px;
+            box-shadow: 0 30px 45px rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(100, 150, 220, 0.4);
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            background: linear-gradient(135deg, #FFF7CF, #B8DEFF);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 8px;
+        }
+
+        .badge {
+            font-size: 0.7rem;
+            background: #0f2a3b;
+            padding: 5px 14px;
+            border-radius: 40px;
+            color: #ffdd99;
+            font-family: monospace;
+        }
+
+        .sub {
+            color: #bdd4ff;
+            border-left: 4px solid #ffbc6e;
+            padding-left: 18px;
+            margin-bottom: 25px;
+            font-size: 0.9rem;
+        }
+
+        .main-dashboard {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 28px;
+            justify-content: center;
+        }
+
+        .model-area {
+            flex: 2;
+            min-width: 320px;
+        }
+
+        .model-stage {
+            position: relative;
+            width: 100%;
+            max-width: 620px;
+            aspect-ratio: 1 / 1;
+            margin: 0 auto;
+            background: radial-gradient(ellipse at 30% 40%, rgba(0, 10, 30, 0.6), #010514);
+            border-radius: 50%;
+            box-shadow: 0 0 0 3px rgba(66, 120, 180, 0.4), inset 0 0 55px rgba(0, 0, 0, 0.7);
+        }
+
+        .model-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        .sun-core {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 80px;
+            height: 80px;
+            background: radial-gradient(circle, #ffdd77, #ff9c1a);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 55px 18px #ffaa33;
+            z-index: 5;
+        }
+
+        .orbit-ring {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 86%;
+            height: 86%;
+            border: 2px dashed rgba(100, 160, 220, 0.8);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+        }
+
+        .earth-drag {
+            position: absolute;
+            width: 58px;
+            height: 58px;
+            cursor: grab;
+            z-index: 30;
+            left: 50%;
+            top: 22px;
+            transform: translateX(-50%);
+        }
+        .earth-drag:active { cursor: grabbing; }
+
+        .earth-sphere {
+            width: 58px;
+            height: 58px;
+            background: radial-gradient(circle at 35% 35%, #5bb4ff, #1f6390);
+            border-radius: 50%;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+            border: 1px solid #c6e2ff;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .terminator {
+            position: absolute;
+            right: 0;
+            top: 0;
+            width: 28%;
+            height: 100%;
+            background: rgba(0,0,0,0.55);
+            border-radius: 0 50% 50% 0;
+            pointer-events: none;
+        }
+
+        .axis-line {
+            position: absolute;
+            top: -22px;
+            left: 50%;
+            width: 3px;
+            height: 102px;
+            background: linear-gradient(180deg, #ffffff, #ffdd88, #ffaa55);
+            transform: translateX(-50%) rotate(23.5deg);
+            transform-origin: top;
+            pointer-events: none;
+            border-radius: 2px;
+            z-index: 20;
+        }
+        .axis-line::before {
+            content: "⦜ Axis Tilt 23.5°";
+            position: absolute;
+            font-size: 7px;
+            background: rgba(0,0,0,0.8);
+            color: #fff0b5;
+            white-space: nowrap;
+            top: -30px;
+            left: 12px;
+            padding: 2px 8px;
+            border-radius: 20px;
+        }
+        .axis-line::after {
+            content: "→ Polaris (North Star)";
+            position: absolute;
+            font-size: 6.5px;
+            background: rgba(0,0,0,0.7);
+            color: #bbddff;
+            white-space: nowrap;
+            top: -52px;
+            left: -8px;
+            padding: 2px 6px;
+            border-radius: 20px;
+        }
+
+        .season-tag {
+            position: absolute;
+            font-size: 0.8rem;
+            font-weight: 600;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(8px);
+            padding: 5px 12px;
+            border-radius: 40px;
+            border: 1px solid rgba(255,215,0,0.5);
+            pointer-events: none;
+            white-space: nowrap;
+            z-index: 15;
+        }
+        .spring-tag { top: 8px; left: 50%; transform: translateX(-50%); background: #1a3a2a; color: #ccffaa; }
+        .summer-tag { right: -8px; top: 50%; transform: translateY(-50%); background: #5a2e0a; color: #ffcc88; }
+        .autumn-tag { bottom: 8px; left: 50%; transform: translateX(-50%); background: #3a2a10; color: #ffdd99; }
+        .winter-tag { left: -8px; top: 50%; transform: translateY(-50%); background: #1a3050; color: #aaddff; }
+
+        .science-panel {
+            flex: 1.2;
+            min-width: 320px;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(8px);
+            border-radius: 40px;
+            padding: 22px 22px;
+            border: 1px solid rgba(72, 160, 255, 0.4);
+        }
+
+        .science-panel h3 {
+            color: #ffdd99;
+            margin: 16px 0 8px 0;
+            font-size: 1.1rem;
+            border-left: 3px solid #ffae70;
+            padding-left: 12px;
+        }
+
+        .live-data {
+            background: #071a2bcc;
+            border-radius: 28px;
+            padding: 14px 18px;
+            margin: 12px 0;
+            border: 1px solid #2a5580;
+        }
+        .live-data p {
+            font-size: 0.95rem;
+            margin: 10px 0;
+            line-height: 1.4;
+        }
+        .season-icon-big {
+            font-size: 1.8rem;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+        .view-buttons {
+            display: flex;
+            gap: 15px;
+            margin: 12px 0;
+        }
+        .view-btn {
+            flex: 1;
+            background: #1e3a5f;
+            border: none;
+            padding: 10px;
+            border-radius: 60px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+            font-size: 0.85rem;
+        }
+        .view-btn.active {
+            background: #ffaa33;
+            color: #0a1a2a;
+            box-shadow: 0 0 8px #ffaa55;
+        }
+        .citation {
+            font-size: 0.65rem;
+            border-top: 1px solid #446688;
+            margin-top: 20px;
+            padding-top: 12px;
+            color: #bbd4ff;
+            line-height: 1.5;
+        }
+        .drag-hint {
+            text-align: center;
+            margin-top: 12px;
+            font-size: 0.75rem;
+            color: #ffdd99;
+            background: #00000066;
+            border-radius: 40px;
+            padding: 5px;
+        }
+        @media (max-width: 780px) {
+            .season-tag { font-size: 0.6rem; padding: 2px 6px; }
+            .earth-drag { width: 48px; height: 48px; }
+            .earth-sphere { width: 48px; height: 48px; }
+            .axis-line { height: 85px; top: -18px; }
+        }
+    </style>
+</head>
+<body>
+<div class="planetarium-card">
+    <h1>
+        🌍 The Seasons · Earth's Axial Tilt & Revolution
+        <span class="badge">Shenzhen Observatory | Accurate Date Model</span>
+    </h1>
+    <div class="sub">✦ Drag Earth around the Sun — the exact month and date update continuously ✦</div>
+
+    <div class="main-dashboard">
+        <div class="model-area">
+            <div class="model-stage">
+                <div class="model-container" id="orbitContainer">
+                    <div class="sun-core"></div>
+                    <div class="orbit-ring"></div>
+                    <div class="season-tag spring-tag" id="tagSpring">🌱 Vernal Equinox</div>
+                    <div class="season-tag summer-tag" id="tagSummer">☀️ Summer Solstice</div>
+                    <div class="season-tag autumn-tag" id="tagAutumn">🍂 Autumnal Equinox</div>
+                    <div class="season-tag winter-tag" id="tagWinter">❄️ Winter Solstice</div>
+                    
+                    <div class="earth-drag" id="draggableEarth">
+                        <div class="earth-sphere">
+                            <div class="terminator"></div>
+                            <div class="axis-line"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="drag-hint">⬅️ Drag Earth → Date, season & subsolar point update in real time</div>
+        </div>
+
+        <div class="science-panel">
+            <div class="view-buttons">
+                <button id="northBtn" class="view-btn active">🌎 Northern Hemisphere</button>
+                <button id="southBtn" class="view-btn">🌏 Southern Hemisphere</button>
+            </div>
+            
+            <div class="live-data" id="liveData">
+                <p><span class="season-icon-big" id="seasonIcon">🌱</span> <strong id="currentSeason">Vernal Equinox</strong></p>
+                <p>📅 <strong id="dateDisplay" style="color:#ffcc88;">March 20</strong></p>
+                <p>📐 <strong id="axialStatus">Axial tilt: 23.5° (fixed toward Polaris)</strong></p>
+                <p>☀️ <strong id="subsolarPoint">Subsolar point: Equator (0°)</strong></p>
+                <p>🌞 <strong id="insolation">Insolation: Equal in both hemispheres</strong></p>
+                <p>⏳ <strong id="daylightStatus">Daylight: 12 hours (equal day & night)</strong></p>
+            </div>
+
+            <h3>📐 Scientific Explanation</h3>
+            <p style="font-size:0.85rem; margin-bottom:12px; color:#d4e4ff;">
+                Earth's axis is tilted <strong>23.5°</strong> relative to its orbital plane. This tilt remains fixed 
+                (pointing toward Polaris) as Earth revolves around the Sun. When the Northern Hemisphere tilts 
+                <strong>toward</strong> the Sun → Summer. When it tilts <strong>away</strong> → Winter.
+            </p>
+
+            <h3>📚 References</h3>
+            <div class="citation">
+                • <strong>NASA (2024)</strong>. <em>What Causes Seasons?</em> NASA Space Place.<br>
+                • <strong>NOAA (2023)</strong>. <em>Astronomical Seasons</em>. National Weather Service.<br>
+                • <strong>UCAR (2022)</strong>. <em>Earth's Orbit and the Seasons</em>.<br>
+                • <strong>National Geographic Society (2023)</strong>. <em>Season (Astronomical Definition)</em>.
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function(){
+        // 精确的日期计算模型
+        // 春分: 3月20日 (一年中第79天)
+        // 夏至: 6月21日 (第172天)
+        // 秋分: 9月22日 (第265天)
+        // 冬至: 12月21日 (第355天)
+        
+        const earth = document.getElementById('draggableEarth');
+        const container = document.getElementById('orbitContainer');
+        let dragging = false;
+        let centerX = 0, centerY = 0, radius = 0;
+        let currentAngle = -Math.PI / 2;  // 春分点
+        let hemisphere = "north";
+        
+        const AXIAL_TILT = 23.5;
+        
+        // 月份天数 (非闰年)
+        const monthDays = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+        const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        
+        // 将日期(月,日)转换为一年中的第几天 (1-365)
+        function dateToDayOfYear(month, day) {
+            let days = 0;
+            for (let i = 0; i < month - 1; i++) days += monthDays[i];
+            return days + day;
+        }
+        
+        // 关键节气的天数
+        const VERNAL_DAY = dateToDayOfYear(3, 20);    // 春分 3月20日 = 79
+        const SUMMER_DAY = dateToDayOfYear(6, 21);    // 夏至 6月21日 = 172
+        const AUTUMN_DAY = dateToDayOfYear(9, 22);    // 秋分 9月22日 = 265
+        const WINTER_DAY = dateToDayOfYear(12, 21);   // 冬至 12月21日 = 355
+        
+        // 根据角度(0-360°)获取一年中的第几天
+        // angleRad = -pi/2 (顶部) 对应春分
+        function getDayOfYearFromAngle(angleRad) {
+            let deg = (angleRad * 180 / Math.PI + 360) % 360;
+            // 调整: deg=0° (右侧) 是夏至? 我们需要重新映射
+            // 当前坐标系: -90°(顶部)=春分, 0°(右侧)=夏至, 90°(底部)=秋分, 180°(左侧)=冬至
+            // 所以 angleRad = -pi/2 对应 day = VERNAL_DAY
+            let normalized = (deg + 90) % 360;  // normalized: 0°=春分, 90°=夏至, 180°=秋分, 270°=冬至
+            let t = normalized / 360;  // 0到1之间，春分->下一个春分
+            
+            // 一年365天，春分到春分
+            let dayOffset = t * 365;
+            let dayOfYear = VERNAL_DAY + dayOffset;
+            if (dayOfYear > 365) dayOfYear -= 365;
+            return Math.floor(dayOfYear);
+        }
+        
+        // 将天数转换为月/日
+        function dayOfYearToMonthDay(day) {
+            let d = day;
+            for (let i = 0; i < 12; i++) {
+                if (d <= monthDays[i]) {
+                    return { month: i + 1, monthName: monthNames[i], day: d };
+                }
+                d -= monthDays[i];
+            }
+            return { month: 12, monthName: "December", day: 31 };
+        }
+        
+        // 根据天数获取季节名称和详细信息
+        function getSeasonInfo(dayOfYear) {
+            // 春分 ~79, 夏至~172, 秋分~265, 冬至~355
+            if (dayOfYear >= VERNAL_DAY && dayOfYear < SUMMER_DAY) {
+                return { season: "Spring", seasonIdx: 0 };
+            } else if (dayOfYear >= SUMMER_DAY && dayOfYear < AUTUMN_DAY) {
+                return { season: "Summer", seasonIdx: 1 };
+            } else if (dayOfYear >= AUTUMN_DAY && dayOfYear < WINTER_DAY) {
+                return { season: "Autumn", seasonIdx: 2 };
+            } else {
+                return { season: "Winter", seasonIdx: 3 };
+            }
+        }
+        
+        // 计算太阳直射点纬度
+        function getSubsolarLatitude(dayOfYear) {
+            // 使用正弦近似: 在夏至达到 +23.5°，冬至 -23.5°
+            // 春分(79天) = 0, 夏至(172) = 90°, 秋分(265)=180°, 冬至(355)=270°
+            let t = (dayOfYear - VERNAL_DAY) / 365.0;
+            let angleDeg = t * 360;
+            let rad = angleDeg * Math.PI / 180;
+            let declination = Math.asin(Math.sin(AXIAL_TILT * Math.PI / 180) * Math.sin(rad)) * 180 / Math.PI;
+            return declination;
+        }
+        
+        // 获取日期显示字符串
+        function getDateString(dayOfYear) {
+            const { monthName, day } = dayOfYearToMonthDay(dayOfYear);
+            let suffix = "th";
+            if (day === 1 || day === 21 || day === 31) suffix = "st";
+            else if (day === 2 || day === 22) suffix = "nd";
+            else if (day === 3 || day === 23) suffix = "rd";
+            return `${monthName} ${day}${suffix}`;
+        }
+        
+        // 北半球季节数据
+        const northSeasonData = [
+            { icon: "🌱", name: "Spring (Vernal Equinox)", insolation: "Equal insolation", daylight: "~12 hours" },
+            { icon: "☀️", name: "Summer (Summer Solstice)", insolation: "Maximum in N. Hemisphere", daylight: "Longest day" },
+            { icon: "🍂", name: "Autumn (Autumnal Equinox)", insolation: "Equal insolation", daylight: "~12 hours" },
+            { icon: "❄️", name: "Winter (Winter Solstice)", insolation: "Minimum in N. Hemisphere", daylight: "Shortest day" }
+        ];
+        
+        const southSeasonData = [
+            { icon: "🍂", name: "Autumn (Autumnal Equinox)", insolation: "Equal insolation", daylight: "~12 hours" },
+            { icon: "❄️", name: "Winter (Winter Solstice)", insolation: "Minimum in S. Hemisphere", daylight: "Shortest day" },
+            { icon: "🌱", name: "Spring (Vernal Equinox)", insolation: "Equal insolation", daylight: "~12 hours" },
+            { icon: "☀️", name: "Summer (Summer Solstice)", insolation: "Maximum in S. Hemisphere", daylight: "Longest day" }
+        ];
+        
+        function updateByAngle(angleRad) {
+            const dayOfYear = getDayOfYearFromAngle(angleRad);
+            const seasonInfo = getSeasonInfo(dayOfYear);
+            const subsolarLat = getSubsolarLatitude(dayOfYear);
+            const dateStr = getDateString(dayOfYear);
+            
+            const subsolarAbs = Math.abs(subsolarLat).toFixed(1);
+            const subsolarDir = subsolarLat > 0 ? "N" : (subsolarLat < 0 ? "S" : "Equator");
+            const subsolarText = subsolarLat === 0 ? "Equator (0°)" : `${subsolarAbs}°${subsolarDir}`;
+            
+            const seasonData = (hemisphere === "north") ? northSeasonData : southSeasonData;
+            const data = seasonData[seasonInfo.seasonIdx];
+            
+            // 更新右侧面板
+            document.getElementById('seasonIcon').innerText = data.icon;
+            let seasonDisplay = data.name;
+            if (hemisphere === "south") seasonDisplay += " (Southern View)";
+            document.getElementById('currentSeason').innerHTML = seasonDisplay;
+            document.getElementById('dateDisplay').innerHTML = `📅 ${dateStr}`;
+            document.getElementById('subsolarPoint').innerHTML = `☀️ Subsolar point: ${subsolarText}`;
+            document.getElementById('insolation').innerHTML = `🌞 ${data.insolation}`;
+            document.getElementById('daylightStatus').innerHTML = `⏳ ${data.daylight}`;
+            document.getElementById('axialStatus').innerHTML = `📐 Axial tilt: ${AXIAL_TILT}° → Polaris`;
+            
+            // 更新轨道标签
+            if (hemisphere === "north") {
+                document.getElementById('tagSpring').innerHTML = "🌱 Vernal Equinox (Mar 20)";
+                document.getElementById('tagSummer').innerHTML = "☀️ Summer Solstice (Jun 21)";
+                document.getElementById('tagAutumn').innerHTML = "🍂 Autumnal Equinox (Sep 22)";
+                document.getElementById('tagWinter').innerHTML = "❄️ Winter Solstice (Dec 21)";
+            } else {
+                document.getElementById('tagSpring').innerHTML = "🍂 Autumnal Equinox (Sep 22)";
+                document.getElementById('tagSummer').innerHTML = "❄️ Winter Solstice (Dec 21)";
+                document.getElementById('tagAutumn').innerHTML = "🌱 Vernal Equinox (Mar 20)";
+                document.getElementById('tagWinter').innerHTML = "☀️ Summer Solstice (Jun 21)";
+            }
+        }
+        
+        function updateGeometry() {
+            if (!container) return;
+            const rect = container.getBoundingClientRect();
+            centerX = rect.width / 2;
+            centerY = rect.height / 2;
+            const minDim = Math.min(rect.width, rect.height);
+            radius = minDim * 0.38;
+            const newX = centerX + radius * Math.cos(currentAngle);
+            const newY = centerY + radius * Math.sin(currentAngle);
+            earth.style.left = newX + 'px';
+            earth.style.top = newY + 'px';
+        }
+        
+        function setEarthPosition(angleRad) {
+            currentAngle = angleRad;
+            if (centerX && radius) {
+                const newX = centerX + radius * Math.cos(currentAngle);
+                const newY = centerY + radius * Math.sin(currentAngle);
+                earth.style.left = newX + 'px';
+                earth.style.top = newY + 'px';
+            }
+            updateByAngle(currentAngle);
+        }
+        
+        function onMouseMove(e) {
+            if (!dragging) return;
+            const rect = container.getBoundingClientRect();
+            let mouseX = e.clientX - rect.left;
+            let mouseY = e.clientY - rect.top;
+            let angle = Math.atan2(mouseY - centerY, mouseX - centerX);
+            setEarthPosition(angle);
+        }
+        
+        function startDrag(e) { dragging = true; e.preventDefault(); earth.style.cursor = 'grabbing'; }
+        function stopDrag() { dragging = false; earth.style.cursor = 'grab'; }
+        
+        function setHemisphere(view) {
+            hemisphere = view;
+            if (view === "north") {
+                document.getElementById('northBtn').classList.add('active');
+                document.getElementById('southBtn').classList.remove('active');
+            } else {
+                document.getElementById('southBtn').classList.add('active');
+                document.getElementById('northBtn').classList.remove('active');
+            }
+            updateByAngle(currentAngle);
+        }
+        
+        function initEvents() {
+            earth.addEventListener('mousedown', startDrag);
+            window.addEventListener('mousemove', onMouseMove);
+            window.addEventListener('mouseup', stopDrag);
+            earth.addEventListener('touchstart', (e) => {
+                e.preventDefault(); dragging = true;
+                const touch = e.touches[0];
+                const rect = container.getBoundingClientRect();
+                let angle = Math.atan2(touch.clientY - rect.top - centerY, touch.clientX - rect.left - centerX);
+                setEarthPosition(angle);
+            });
+            window.addEventListener('touchmove', (e) => {
+                if (!dragging) return; e.preventDefault();
+                const touch = e.touches[0];
+                const rect = container.getBoundingClientRect();
+                let angle = Math.atan2(touch.clientY - rect.top - centerY, touch.clientX - rect.left - centerX);
+                setEarthPosition(angle);
+            });
+            window.addEventListener('touchend', () => dragging = false);
+            document.getElementById('northBtn').addEventListener('click', () => setHemisphere('north'));
+            document.getElementById('southBtn').addEventListener('click', () => setHemisphere('south'));
+        }
+        
+        function init() {
+            updateGeometry();
+            setEarthPosition(-Math.PI / 2);
+            initEvents();
+        }
+        window.addEventListener('load', () => { init(); setTimeout(updateGeometry, 80); });
+        window.addEventListener('resize', () => { updateGeometry(); setEarthPosition(currentAngle); });
+    })();
+</script>
+</body>
+</html>
